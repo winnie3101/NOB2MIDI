@@ -1,0 +1,50 @@
+findloc OFFSET_START binary "\x4D\x54\x68\x64"
+if OFFSET_START < 0
+    print "Not found: MThd (MIDI Header)"
+    cleanexit
+endif
+
+set FOUND_END 0
+
+findloc OFFSET_END binary "\xFF\x2F\x00\x00\x00\x00\x00\x00\x00" 0 OFFSET_START
+if OFFSET_END >= 0
+    set FOUND_END 1
+endif
+
+# 40 00 FF 2F 00
+if FOUND_END == 0
+    findloc OFFSET_END binary "\xFF\x2F\x00" 0 OFFSET_START
+    if OFFSET_END >= 0
+        set FOUND_END 1
+    endif
+endif
+
+# FF 2F 00
+if FOUND_END == 0
+    findloc OFFSET_END binary "\xFF\x2F\x00" 0 OFFSET_START
+    if OFFSET_END >= 0
+        set FOUND_END 1
+    endif
+endif
+
+# If not found
+if FOUND_END == 0
+    print "Not found: MIDI ending (FF 2F 00)"
+    cleanexit
+endif
+
+math OFFSET_END + 3  # FF 2F 00 = 3 bytes
+
+# Calculate MIDI file length
+math SIZE = OFFSET_END
+math SIZE - OFFSET_START
+
+if SIZE <= 0
+    print "ERROR: MIDI size invalid"
+    cleanexit
+endif
+
+# Extract
+get packname FILENAME
+string packname += .mid
+log packname OFFSET_START SIZE
